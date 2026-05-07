@@ -1,9 +1,10 @@
 -- =======================================================
--- LDT HUB - FIX LAG V3 (1 GIÂY & FIX TÁC DỤNG CÁC MỨC)
+-- LDT HUB - FIX LAG V4 (ĐA LUỒNG - SIÊU NHANH - KHÔNG ĐƠ)
 -- =======================================================
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local workspace = game:GetService("Workspace")
 local lighting = game:GetService("Lighting")
 local terrain = workspace:WaitForChild("Terrain")
@@ -30,9 +31,7 @@ MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = MainFrame
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
@@ -43,8 +42,8 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -50, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "LDT HUB - FIX LAG V3"
-TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 127) -- Đổi màu tiêu đề cho ngầu
+TitleLabel.Text = "LDT HUB - FIX LAG V4"
+TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextSize = 16
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -59,10 +58,7 @@ ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.TextSize = 20
 ToggleBtn.Parent = TitleBar
-
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 8)
-ToggleCorner.Parent = ToggleBtn
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
 
 local ButtonContainer = Instance.new("Frame")
 ButtonContainer.Size = UDim2.new(1, 0, 1, -40)
@@ -118,141 +114,117 @@ ToggleBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =======================================================
--- HỆ THỐNG CACHE TỐC ĐỘ CAO (XỬ LÝ TRONG 1 GIÂY)
+-- HỆ THỐNG XỬ LÝ ĐA LUỒNG (KHÔNG LÀM ĐƠ GAME)
 -- =======================================================
--- Sử dụng "Weak Table" để lưu dữ liệu cực nhanh mà không gây tràn RAM
 local stateCache = setmetatable({}, {__mode = "k"})
 local CurrentLevel = 0
+local isProcessing = false -- Khóa nút khi đang chạy
 
-local function ApplySpeedFix(level)
+local function ApplySpeedFix(level, clickedButton, doneText)
+    if isProcessing then return end
+    isProcessing = true
     CurrentLevel = level
     
-    -- 1. Xử lý môi trường nhanh
-    if level == 0 then
-        lighting.GlobalShadows = true
-        if terrain then terrain.Decoration = true end
-    else
-        lighting.GlobalShadows = false
-        if terrain then terrain.Decoration = false end
-    end
-
-    -- 2. Quét map TỐC ĐỘ CAO (Không dùng task.wait() để xong trong 1s)
-    local allObjects = workspace:GetDescendants()
+    -- Đổi tên nút để báo hiệu đang chạy
+    clickedButton.Text = "Đang quét... (1s)"
     
-    for _, obj in ipairs(allObjects) do
-        -- LƯU LẠI NHANH CHÓNG VÀO BẢNG
-        if not stateCache[obj] then
-            local state = {}
-            if obj:IsA("BasePart") then
-                state.Mat = obj.Material
-                state.Col = obj.Color
-                state.Trans = obj.Transparency
-            end
-            if obj:IsA("MeshPart") then state.Tex = obj.TextureID end
-            if obj:IsA("SpecialMesh") then state.TexId = obj.TextureId end
-            if obj:IsA("Decal") or obj:IsA("Texture") then state.DTrans = obj.Transparency end
-            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") then state.Enabled = obj.Enabled end
-            stateCache[obj] = state
+    -- Xử lý đa luồng (task.spawn) giúp UI không bị liệt
+    task.spawn(function()
+        if level == 0 then
+            lighting.GlobalShadows = true
+            if terrain then terrain.Decoration = true end
+        else
+            lighting.GlobalShadows = false
+            if terrain then terrain.Decoration = false end
         end
 
-        local state = stateCache[obj]
-
-        -- ============================================
-        -- MỨC 0: KHÔI PHỤC
-        -- ============================================
-        if level == 0 then
-            if obj:IsA("BasePart") and state.Col then
-                obj.Material = state.Mat
-                obj.Color = state.Col
-                obj.Transparency = state.Trans
+        local allObjects = workspace:GetDescendants()
+        
+        for i, obj in ipairs(allObjects) do
+            -- Lưu cache
+            if not stateCache[obj] then
+                local state = {}
+                if obj:IsA("BasePart") then
+                    state.Mat = obj.Material; state.Col = obj.Color; state.Trans = obj.Transparency
+                end
+                if obj:IsA("MeshPart") then state.Tex = obj.TextureID end
+                if obj:IsA("SpecialMesh") then state.TexId = obj.TextureId end
+                if obj:IsA("Decal") or obj:IsA("Texture") then state.DTrans = obj.Transparency end
+                if obj:IsA("ParticleEmitter") or obj:IsA("Trail") then state.Enabled = obj.Enabled end
+                stateCache[obj] = state
             end
-            if obj:IsA("MeshPart") and state.Tex then obj.TextureID = state.Tex end
-            if obj:IsA("SpecialMesh") and state.TexId then obj.TextureId = state.TexId end
-            if (obj:IsA("Decal") or obj:IsA("Texture")) and state.DTrans then obj.Transparency = state.DTrans end
-            if (obj:IsA("ParticleEmitter") or obj:IsA("Trail")) and state.Enabled ~= nil then obj.Enabled = state.Enabled end
 
-        -- ============================================
-        -- MỨC 1: NHẸ (Biến tất cả thành SmoothPlastic)
-        -- ============================================
-        elseif level >= 1 then
-            if obj:IsA("BasePart") then
-                obj.Material = Enum.Material.SmoothPlastic
-                obj.CastShadow = false
-            end
-            
-            -- ============================================
-            -- MỨC 2: MẠNH (Xóa Textures, tắt hiệu ứng chiêu)
-            -- ============================================
-            if level >= 2 then
-                if obj:IsA("MeshPart") then obj.TextureID = "" end
-                if obj:IsA("SpecialMesh") then obj.TextureId = "" end
-                if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then obj.Enabled = false end
+            local state = stateCache[obj]
+
+            -- KHÔI PHỤC
+            if level == 0 then
+                if obj:IsA("BasePart") and state.Col then
+                    obj.Material = state.Mat; obj.Color = state.Col; obj.Transparency = state.Trans
+                end
+                if obj:IsA("MeshPart") and state.Tex then obj.TextureID = state.Tex end
+                if obj:IsA("SpecialMesh") and state.TexId then obj.TextureId = state.TexId end
+                if (obj:IsA("Decal") or obj:IsA("Texture")) and state.DTrans then obj.Transparency = state.DTrans end
+                if (obj:IsA("ParticleEmitter") or obj:IsA("Trail")) and state.Enabled ~= nil then obj.Enabled = state.Enabled end
+
+            -- FIX NHẸ (Xóa Texture rườm rà + Làm mượt)
+            elseif level >= 1 then
+                if obj:IsA("BasePart") then
+                    obj.Material = Enum.Material.SmoothPlastic
+                    obj.CastShadow = false
+                end
                 if obj:IsA("Decal") or obj:IsA("Texture") then obj.Transparency = 1 end
                 
-                -- ============================================
-                -- MỨC 3: SIÊU MẠNH (Đổi màu xám nhìn xuyên + Xóa đồ người khác)
-                -- ============================================
-                if level == 3 then
-                    if obj:IsA("BasePart") then
-                        obj.Color = Color3.fromRGB(150, 150, 150)
-                        obj.Transparency = 0.5
-                    end
-                    -- Xóa sạch phụ kiện, áo quần để nhẹ máy
-                    if obj:IsA("Accessory") or obj:IsA("ShirtGraphic") or obj:IsA("Clothing") then
-                        obj:Destroy()
+                -- FIX MẠNH (Xóa Textures 3D, tắt hiệu ứng chiêu)
+                if level >= 2 then
+                    if obj:IsA("MeshPart") then obj.TextureID = "" end
+                    if obj:IsA("SpecialMesh") then obj.TextureId = "" end
+                    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then obj.Enabled = false end
+                    
+                    -- FIX SIÊU MẠNH (Xóa màu, xóa quần áo)
+                    if level == 3 then
+                        if obj:IsA("BasePart") then
+                            obj.Color = Color3.fromRGB(150, 150, 150)
+                            obj.Transparency = 0.5
+                        end
+                        if obj:IsA("Accessory") or obj:IsA("ShirtGraphic") or obj:IsA("Clothing") then
+                            obj:Destroy()
+                        end
                     end
                 end
             end
+            
+            -- Chốt an toàn siêu tốc: Cứ 5000 khối thì nghỉ 1 khung hình (1/60s) để game không bị đơ
+            if i % 5000 == 0 then RunService.Heartbeat:Wait() end
         end
-    end
+
+        -- Xong xuôi thì khôi phục lại chữ cho nút
+        BtnLight.Text = "Fix Lag Nhẹ"
+        BtnStrong.Text = "Fix Lag Mạnh"
+        BtnExtreme.Text = "Fix Lag Siêu Mạnh"
+        BtnRestore.Text = "Tắt Fix / Khôi Phục"
+        
+        clickedButton.Text = doneText
+        isProcessing = false -- Mở khóa nút
+    end)
 end
 
 -- =======================================================
--- GẮN CHỨC NĂNG VÀO NÚT (KHÔNG DELAY)
+-- GẮN CHỨC NĂNG VÀO NÚT
 -- =======================================================
-local function ResetButtonNames()
-    BtnLight.Text = "Fix Lag Nhẹ"
-    BtnStrong.Text = "Fix Lag Mạnh"
-    BtnExtreme.Text = "Fix Lag Siêu Mạnh"
-    BtnRestore.Text = "Tắt Fix / Khôi Phục"
-end
+BtnLight.MouseButton1Click:Connect(function() ApplySpeedFix(1, BtnLight, "Đã Fix Nhẹ!") end)
+BtnStrong.MouseButton1Click:Connect(function() ApplySpeedFix(2, BtnStrong, "Đã Fix Mạnh!") end)
+BtnExtreme.MouseButton1Click:Connect(function() ApplySpeedFix(3, BtnExtreme, "Đã Fix Siêu Mạnh!") end)
+BtnRestore.MouseButton1Click:Connect(function() ApplySpeedFix(0, BtnRestore, "Đã Khôi Phục!") end)
 
-BtnLight.MouseButton1Click:Connect(function()
-    ApplySpeedFix(1)
-    ResetButtonNames()
-    BtnLight.Text = "Đã Fix Nhẹ!"
-end)
-
-BtnStrong.MouseButton1Click:Connect(function()
-    ApplySpeedFix(2)
-    ResetButtonNames()
-    BtnStrong.Text = "Đã Fix Mạnh!"
-end)
-
-BtnExtreme.MouseButton1Click:Connect(function()
-    ApplySpeedFix(3)
-    ResetButtonNames()
-    BtnExtreme.Text = "Đã Fix Siêu Mạnh!"
-end)
-
-BtnRestore.MouseButton1Click:Connect(function()
-    ApplySpeedFix(0)
-    ResetButtonNames()
-    BtnRestore.Text = "Đã Khôi Phục!"
-end)
-
--- Tự động fix các vật thể mới rớt xuống map hoặc chiêu mới quăng ra
+-- Tự động fix vật thể sinh ra mới (Chiêu đánh ra...)
 workspace.DescendantAdded:Connect(function(obj)
     if CurrentLevel > 0 then
-        -- Chạy ngầm lập tức
         task.defer(function()
             if obj:IsA("BasePart") then
                 obj.Material = Enum.Material.SmoothPlastic
-                if CurrentLevel == 3 then
-                    obj.Color = Color3.fromRGB(150, 150, 150)
-                    obj.Transparency = 0.5
-                end
+                if CurrentLevel == 3 then obj.Color = Color3.fromRGB(150, 150, 150); obj.Transparency = 0.5 end
             end
+            if CurrentLevel >= 1 and (obj:IsA("Decal") or obj:IsA("Texture")) then obj.Transparency = 1 end
             if CurrentLevel >= 2 then
                 if obj:IsA("MeshPart") then obj.TextureID = "" end
                 if obj:IsA("SpecialMesh") then obj.TextureId = "" end
