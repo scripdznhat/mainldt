@@ -1,40 +1,41 @@
 -- =======================================================
--- LDT HUB - FIX LAG V1
+-- LDT HUB - FIX LAG V1 (BLOX FRUITS EDITION)
 -- =======================================================
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local workspace = game:GetService("Workspace")
 local lighting = game:GetService("Lighting")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local terrain = workspace:WaitForChild("Terrain")
 
--- Xóa UI cũ nếu đã chạy trước đó để tránh bị trùng lặp
+-- Xóa UI cũ để không bị trùng lặp
 for _, gui in pairs(player.PlayerGui:GetChildren()) do
-    if gui.Name == "LDTHubFixLag" then
-        gui:Destroy()
-    end
+    if gui.Name == "LDTHubFixLag" then gui:Destroy() end
 end
 
--- 1. TẠO SCREEN GUI
+-- =======================================================
+-- TẠO GIAO DIỆN (UI)
+-- =======================================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "LDTHubFixLag"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui") -- Có thể đổi thành game.CoreGui nếu dùng Executor
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- 2. TẠO MENU CHÍNH (FRAME)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 250, 0, 320) -- Hình chữ nhật đứng
+MainFrame.Size = UDim2.new(0, 250, 0, 320)
 MainFrame.Position = UDim2.new(0.5, -125, 0.5, -160)
-MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true -- Để khi thu nhỏ, các nút bên trong bị giấu đi
+MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12) -- Viền bo tròn cho Menu
+MainCorner.CornerRadius = UDim.new(0, 12)
 MainCorner.Parent = MainFrame
 
--- 3. TẠO TIÊU ĐỀ
+-- TIÊU ĐỀ
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundTransparency = 1
@@ -51,7 +52,7 @@ TitleLabel.TextSize = 16
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = TitleBar
 
--- 4. TẠO NÚT THU GỌN (+ / -)
+-- NÚT THU GỌN (+/-)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 30, 0, 30)
 ToggleBtn.Position = UDim2.new(1, -40, 0, 5)
@@ -66,14 +67,13 @@ local ToggleCorner = Instance.new("UICorner")
 ToggleCorner.CornerRadius = UDim.new(0, 8)
 ToggleCorner.Parent = ToggleBtn
 
--- Khung chứa các nút chức năng
+-- CONTAINER CHỨA NÚT
 local ButtonContainer = Instance.new("Frame")
 ButtonContainer.Size = UDim2.new(1, 0, 1, -50)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 50)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
 
--- HÀM TẠO NÚT NHANH
 local function CreateButton(name, text, color, yPos)
     local btn = Instance.new("TextButton")
     btn.Name = name
@@ -87,42 +87,30 @@ local function CreateButton(name, text, color, yPos)
     btn.Parent = ButtonContainer
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10) -- Viền bo tròn cho nút
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = btn
-    
     return btn
 end
 
--- 5. TẠO 3 NÚT FIX LAG
-local BtnLight = CreateButton("BtnLight", "Fix Lag Nhẹ", Color3.fromRGB(46, 204, 113), 10)     -- Màu Xanh lá
-local BtnStrong = CreateButton("BtnStrong", "Fix Lag Mạnh", Color3.fromRGB(241, 196, 15), 70)   -- Màu Vàng
-local BtnExtreme = CreateButton("BtnExtreme", "Fix Lag Siêu Mạnh", Color3.fromRGB(231, 76, 60), 130) -- Màu Đỏ
+local BtnLight = CreateButton("BtnLight", "Fix Lag Nhẹ", Color3.fromRGB(46, 204, 113), 10)
+local BtnStrong = CreateButton("BtnStrong", "Fix Lag Mạnh", Color3.fromRGB(241, 196, 15), 70)
+local BtnExtreme = CreateButton("BtnExtreme", "Fix Lag Siêu Mạnh", Color3.fromRGB(231, 76, 60), 130)
 
-
--- =======================================================
--- CHỨC NĂNG KÉO THẢ MENU (DRAG)
--- =======================================================
+-- KÉO THẢ MENU
 local dragging, dragInput, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = MainFrame.Position
-        
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
-
 TitleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
@@ -130,99 +118,120 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-
--- =======================================================
--- CHỨC NĂNG THU GỌN MENU (+ / -)
--- =======================================================
+-- THU GỌN MENU
 local isMinimized = false
 ToggleBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        -- Thu nhỏ thành hình chữ nhật ngang hẹp
         TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 250, 0, 40)}):Play()
         ToggleBtn.Text = "+"
     else
-        -- Phóng to lại như cũ
         TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 250, 0, 320)}):Play()
         ToggleBtn.Text = "-"
     end
 end)
 
-
 -- =======================================================
--- HỆ THỐNG FIX LAG LOGIC
+-- LÕI XỬ LÝ FIX LAG (CHUYÊN TRỊ BLOX FRUITS)
 -- =======================================================
-local CurrentFixLevel = 0 -- 0: Normal, 1: Light, 2: Strong, 3: Extreme
+local CurrentLevel = 0
 
-local function ApplyLight(obj)
-    if obj:IsA("BasePart") then
-        obj.Material = Enum.Material.SmoothPlastic
-        obj.CastShadow = false
-    end
-end
-
-local function ApplyStrong(obj)
-    ApplyLight(obj) -- Kế thừa mức 1
-    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
-        obj.Enabled = false
-    end
-end
-
-local function ApplyExtreme(obj)
-    ApplyStrong(obj) -- Kế thừa mức 2
-    if obj:IsA("BasePart") then
-        obj.Color = Color3.fromRGB(150, 150, 150) -- Không màu (xám)
-        obj.Transparency = 0.5 -- Nhìn xuyên qua
-    elseif obj:IsA("Texture") or obj:IsA("Decal") then
-        obj:Destroy() -- Xóa ảnh dán
-    end
-end
-
--- Tắt hiệu ứng mặt trời/đồ họa nặng
-local function ClearLighting()
+-- Tối ưu hóa hệ thống ánh sáng và nước biển
+local function OptimizeLightingAndTerrain()
     lighting.GlobalShadows = false
-    for _, effect in pairs(lighting:GetChildren()) do
-        if effect:IsA("PostEffect") or effect:IsA("Atmosphere") then
-            effect.Enabled = false
-        end
-    end
-end
-
--- Quét toàn map
-local function RunFix(level)
-    CurrentFixLevel = level
-    ClearLighting()
+    lighting.FogEnd = 9e9
+    lighting.Brightness = 1
     
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if level == 1 then ApplyLight(obj)
-        elseif level == 2 then ApplyStrong(obj)
-        elseif level == 3 then ApplyExtreme(obj)
+    -- Xóa sương mù, mờ viền, chói sáng của Blox Fruits
+    for _, v in pairs(lighting:GetChildren()) do
+        if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("Sky") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+            v:Destroy()
+        end
+    end
+
+    -- Giảm đồ họa nước biển
+    if terrain then
+        terrain.WaterWaveSize = 0
+        terrain.WaterWaveSpeed = 0
+        terrain.WaterReflectance = 0
+        terrain.WaterTransparency = 1
+    end
+end
+
+-- Hàm xử lý từng vật thể (Quét sâu vào MeshPart)
+local function ProcessObject(obj, level)
+    -- LEVEL 1: Tắt bóng và ánh sáng phát ra
+    if level >= 1 then
+        if obj:IsA("BasePart") then
+            obj.CastShadow = false
+        elseif obj:IsA("PointLight") or obj:IsA("SurfaceLight") or obj:IsA("SpotLight") then
+            obj.Enabled = false
+        end
+    end
+
+    -- LEVEL 2: Xóa sổ 100% hiệu ứng chiêu thức (Particles, Trails)
+    if level >= 2 then
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+            obj.Enabled = false -- Chỉ tắt đi, không Destroy để tránh lỗi script game
+            obj.Transparency = NumberSequence.new(1) -- Ép tàng hình
+        end
+    end
+
+    -- LEVEL 3: Tàn phá đồ họa (Xóa Texture, làm trong suốt)
+    if level >= 3 then
+        if obj:IsA("BasePart") then
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.Color = Color3.fromRGB(150, 150, 150)
+            obj.Transparency = 0.5 -- Nhìn xuyên thấu
+        end
+        
+        -- ĐẶC BIỆT CHO BLOX FRUITS: Xóa kết cấu Mesh
+        if obj:IsA("MeshPart") then
+            obj.TextureID = "" -- Xóa vân bề mặt
+        elseif obj:IsA("SpecialMesh") then
+            obj.TextureId = "" -- Xóa ảnh của các khối custom
+        elseif obj:IsA("Decal") or obj:IsA("Texture") then
+            obj.Transparency = 1 -- Làm mờ hoàn toàn ảnh dán
         end
     end
 end
 
--- Lắng nghe các khối mới xuất hiện (VD: Chiêu thức mới đánh ra)
-workspace.DescendantAdded:Connect(function(newObj)
-    if CurrentFixLevel == 1 then ApplyLight(newObj)
-    elseif CurrentFixLevel == 2 then ApplyStrong(newObj)
-    elseif CurrentFixLevel == 3 then ApplyExtreme(newObj)
+-- Quét toàn bộ Game (Tránh lag máy khi quét bằng cách chia nhỏ bằng task.wait)
+local function RunOptimizer(level)
+    CurrentLevel = level
+    OptimizeLightingAndTerrain()
+    
+    -- Quét cả Workspace (Đảo, NPC) và ReplicatedStorage (Chiêu thức đang cất giấu)
+    local allObjects = workspace:GetDescendants()
+    for i, obj in pairs(allObjects) do
+        ProcessObject(obj, level)
+        -- Chống crash khi quét quá nhiều vật thể cùng lúc
+        if i % 1000 == 0 then task.wait() end 
+    end
+end
+
+-- Tự động áp dụng lên các chiêu thức VỪA ĐƯỢC TUNG RA
+workspace.DescendantAdded:Connect(function(obj)
+    if CurrentLevel > 0 then
+        ProcessObject(obj, CurrentLevel)
     end
 end)
 
--- Gán sự kiện vào Nút
+-- Gắn sự kiện cho các Nút
 BtnLight.MouseButton1Click:Connect(function()
+    BtnLight.Text = "Đang áp dụng..."
+    RunOptimizer(1)
     BtnLight.Text = "Đã Fix Nhẹ!"
-    RunFix(1)
 end)
 
 BtnStrong.MouseButton1Click:Connect(function()
+    BtnStrong.Text = "Đang áp dụng..."
+    RunOptimizer(2)
     BtnStrong.Text = "Đã Fix Mạnh!"
-    RunFix(2)
 end)
 
 BtnExtreme.MouseButton1Click:Connect(function()
+    BtnExtreme.Text = "Đang áp dụng..."
+    RunOptimizer(3)
     BtnExtreme.Text = "Đã Fix Siêu Mạnh!"
-    RunFix(3)
 end)
-
-print("LDT HUB - V1 Loaded Successfully!")
