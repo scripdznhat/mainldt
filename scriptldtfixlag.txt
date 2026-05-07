@@ -1,0 +1,228 @@
+-- =======================================================
+-- LDT HUB - FIX LAG V1
+-- =======================================================
+local player = game.Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local workspace = game:GetService("Workspace")
+local lighting = game:GetService("Lighting")
+
+-- Xóa UI cũ nếu đã chạy trước đó để tránh bị trùng lặp
+for _, gui in pairs(player.PlayerGui:GetChildren()) do
+    if gui.Name == "LDTHubFixLag" then
+        gui:Destroy()
+    end
+end
+
+-- 1. TẠO SCREEN GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LDTHubFixLag"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui") -- Có thể đổi thành game.CoreGui nếu dùng Executor
+
+-- 2. TẠO MENU CHÍNH (FRAME)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 250, 0, 320) -- Hình chữ nhật đứng
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true -- Để khi thu nhỏ, các nút bên trong bị giấu đi
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12) -- Viền bo tròn cho Menu
+MainCorner.Parent = MainFrame
+
+-- 3. TẠO TIÊU ĐỀ
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundTransparency = 1
+TitleBar.Parent = MainFrame
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -50, 1, 0)
+TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "LDT HUB - FIX LAG V1"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 16
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
+
+-- 4. TẠO NÚT THU GỌN (+ / -)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 30, 0, 30)
+ToggleBtn.Position = UDim2.new(1, -40, 0, 5)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+ToggleBtn.Text = "-"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 20
+ToggleBtn.Parent = TitleBar
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 8)
+ToggleCorner.Parent = ToggleBtn
+
+-- Khung chứa các nút chức năng
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Size = UDim2.new(1, 0, 1, -50)
+ButtonContainer.Position = UDim2.new(0, 0, 0, 50)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.Parent = MainFrame
+
+-- HÀM TẠO NÚT NHANH
+local function CreateButton(name, text, color, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = UDim2.new(1, -40, 0, 45)
+    btn.Position = UDim2.new(0, 20, 0, yPos)
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 15
+    btn.Parent = ButtonContainer
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10) -- Viền bo tròn cho nút
+    corner.Parent = btn
+    
+    return btn
+end
+
+-- 5. TẠO 3 NÚT FIX LAG
+local BtnLight = CreateButton("BtnLight", "Fix Lag Nhẹ", Color3.fromRGB(46, 204, 113), 10)     -- Màu Xanh lá
+local BtnStrong = CreateButton("BtnStrong", "Fix Lag Mạnh", Color3.fromRGB(241, 196, 15), 70)   -- Màu Vàng
+local BtnExtreme = CreateButton("BtnExtreme", "Fix Lag Siêu Mạnh", Color3.fromRGB(231, 76, 60), 130) -- Màu Đỏ
+
+
+-- =======================================================
+-- CHỨC NĂNG KÉO THẢ MENU (DRAG)
+-- =======================================================
+local dragging, dragInput, dragStart, startPos
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+
+-- =======================================================
+-- CHỨC NĂNG THU GỌN MENU (+ / -)
+-- =======================================================
+local isMinimized = false
+ToggleBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        -- Thu nhỏ thành hình chữ nhật ngang hẹp
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 250, 0, 40)}):Play()
+        ToggleBtn.Text = "+"
+    else
+        -- Phóng to lại như cũ
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 250, 0, 320)}):Play()
+        ToggleBtn.Text = "-"
+    end
+end)
+
+
+-- =======================================================
+-- HỆ THỐNG FIX LAG LOGIC
+-- =======================================================
+local CurrentFixLevel = 0 -- 0: Normal, 1: Light, 2: Strong, 3: Extreme
+
+local function ApplyLight(obj)
+    if obj:IsA("BasePart") then
+        obj.Material = Enum.Material.SmoothPlastic
+        obj.CastShadow = false
+    end
+end
+
+local function ApplyStrong(obj)
+    ApplyLight(obj) -- Kế thừa mức 1
+    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+        obj.Enabled = false
+    end
+end
+
+local function ApplyExtreme(obj)
+    ApplyStrong(obj) -- Kế thừa mức 2
+    if obj:IsA("BasePart") then
+        obj.Color = Color3.fromRGB(150, 150, 150) -- Không màu (xám)
+        obj.Transparency = 0.5 -- Nhìn xuyên qua
+    elseif obj:IsA("Texture") or obj:IsA("Decal") then
+        obj:Destroy() -- Xóa ảnh dán
+    end
+end
+
+-- Tắt hiệu ứng mặt trời/đồ họa nặng
+local function ClearLighting()
+    lighting.GlobalShadows = false
+    for _, effect in pairs(lighting:GetChildren()) do
+        if effect:IsA("PostEffect") or effect:IsA("Atmosphere") then
+            effect.Enabled = false
+        end
+    end
+end
+
+-- Quét toàn map
+local function RunFix(level)
+    CurrentFixLevel = level
+    ClearLighting()
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if level == 1 then ApplyLight(obj)
+        elseif level == 2 then ApplyStrong(obj)
+        elseif level == 3 then ApplyExtreme(obj)
+        end
+    end
+end
+
+-- Lắng nghe các khối mới xuất hiện (VD: Chiêu thức mới đánh ra)
+workspace.DescendantAdded:Connect(function(newObj)
+    if CurrentFixLevel == 1 then ApplyLight(newObj)
+    elseif CurrentFixLevel == 2 then ApplyStrong(newObj)
+    elseif CurrentFixLevel == 3 then ApplyExtreme(newObj)
+    end
+end)
+
+-- Gán sự kiện vào Nút
+BtnLight.MouseButton1Click:Connect(function()
+    BtnLight.Text = "Đã Fix Nhẹ!"
+    RunFix(1)
+end)
+
+BtnStrong.MouseButton1Click:Connect(function()
+    BtnStrong.Text = "Đã Fix Mạnh!"
+    RunFix(2)
+end)
+
+BtnExtreme.MouseButton1Click:Connect(function()
+    BtnExtreme.Text = "Đã Fix Siêu Mạnh!"
+    RunFix(3)
+end)
+
+print("LDT HUB - V1 Loaded Successfully!")
