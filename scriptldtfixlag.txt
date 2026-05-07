@@ -1,15 +1,14 @@
 -- =======================================================
--- LDT HUB - FIX LAG V1 (BLOX FRUITS EDITION)
+-- LDT HUB - FIX LAG V2 (CÓ KHÔI PHỤC & XÓA CỰC MẠNH)
 -- =======================================================
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local workspace = game:GetService("Workspace")
 local lighting = game:GetService("Lighting")
-local replicatedStorage = game:GetService("ReplicatedStorage")
 local terrain = workspace:WaitForChild("Terrain")
 
--- Xóa UI cũ để không bị trùng lặp
+-- Xóa UI cũ
 for _, gui in pairs(player.PlayerGui:GetChildren()) do
     if gui.Name == "LDTHubFixLag" then gui:Destroy() end
 end
@@ -22,11 +21,12 @@ ScreenGui.Name = "LDTHubFixLag"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- Nâng chiều cao bảng lên 380 để chứa 4 nút
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 250, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -160)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.Size = UDim2.new(0, 250, 0, 380) 
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
@@ -45,14 +45,14 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -50, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "LDT HUB - FIX LAG V1"
+TitleLabel.Text = "LDT HUB - FIX LAG V2"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextSize = 16
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = TitleBar
 
--- NÚT THU GỌN (+/-)
+-- NÚT THU GỌN
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 30, 0, 30)
 ToggleBtn.Position = UDim2.new(1, -40, 0, 5)
@@ -69,8 +69,8 @@ ToggleCorner.Parent = ToggleBtn
 
 -- CONTAINER CHỨA NÚT
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(1, 0, 1, -50)
-ButtonContainer.Position = UDim2.new(0, 0, 0, 50)
+ButtonContainer.Size = UDim2.new(1, 0, 1, -40)
+ButtonContainer.Position = UDim2.new(0, 0, 0, 40)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
 
@@ -92,20 +92,18 @@ local function CreateButton(name, text, color, yPos)
     return btn
 end
 
-local BtnLight = CreateButton("BtnLight", "Fix Lag Nhẹ", Color3.fromRGB(46, 204, 113), 10)
-local BtnStrong = CreateButton("BtnStrong", "Fix Lag Mạnh", Color3.fromRGB(241, 196, 15), 70)
-local BtnExtreme = CreateButton("BtnExtreme", "Fix Lag Siêu Mạnh", Color3.fromRGB(231, 76, 60), 130)
+-- THÊM 4 NÚT
+local BtnLight = CreateButton("BtnLight", "Fix Lag Nhẹ", Color3.fromRGB(46, 204, 113), 15)
+local BtnStrong = CreateButton("BtnStrong", "Fix Lag Mạnh", Color3.fromRGB(241, 196, 15), 75)
+local BtnExtreme = CreateButton("BtnExtreme", "Fix Lag Siêu Mạnh", Color3.fromRGB(231, 76, 60), 135)
+local BtnRestore = CreateButton("BtnRestore", "Tắt Fix / Khôi Phục", Color3.fromRGB(52, 152, 219), 215) -- Màu xanh dương
 
 -- KÉO THẢ MENU
 local dragging, dragInput, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
     end
 end)
 TitleBar.InputChanged:Connect(function(input)
@@ -126,112 +124,187 @@ ToggleBtn.MouseButton1Click:Connect(function()
         TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 250, 0, 40)}):Play()
         ToggleBtn.Text = "+"
     else
-        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 250, 0, 320)}):Play()
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 250, 0, 380)}):Play()
         ToggleBtn.Text = "-"
     end
 end)
 
 -- =======================================================
--- LÕI XỬ LÝ FIX LAG (CHUYÊN TRỊ BLOX FRUITS)
+-- HỆ THỐNG LƯU TRỮ VÀ XỬ LÝ (CACHE SYSTEM)
 -- =======================================================
 local CurrentLevel = 0
 
--- Tối ưu hóa hệ thống ánh sáng và nước biển
-local function OptimizeLightingAndTerrain()
-    lighting.GlobalShadows = false
-    lighting.FogEnd = 9e9
-    lighting.Brightness = 1
-    
-    -- Xóa sương mù, mờ viền, chói sáng của Blox Fruits
-    for _, v in pairs(lighting:GetChildren()) do
-        if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("Sky") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
-            v:Destroy()
-        end
-    end
+-- Hàm LƯU trạng thái gốc trước khi thay đổi
+local function SaveOriginalState(obj)
+    if obj:GetAttribute("Saved") then return end -- Nếu đã lưu rồi thì bỏ qua
+    obj:SetAttribute("Saved", true)
 
-    -- Giảm đồ họa nước biển
-    if terrain then
-        terrain.WaterWaveSize = 0
-        terrain.WaterWaveSpeed = 0
-        terrain.WaterReflectance = 0
-        terrain.WaterTransparency = 1
+    if obj:IsA("BasePart") then
+        obj:SetAttribute("OrigColor", obj.Color)
+        obj:SetAttribute("OrigMaterial", obj.Material.Name)
+        obj:SetAttribute("OrigTransparency", obj.Transparency)
+        obj:SetAttribute("OrigShadow", obj.CastShadow)
+    end
+    if obj:IsA("MeshPart") then obj:SetAttribute("OrigTex", obj.TextureID) end
+    if obj:IsA("SpecialMesh") then obj:SetAttribute("OrigTexId", obj.TextureId) end
+    if obj:IsA("Decal") or obj:IsA("Texture") then obj:SetAttribute("OrigTrans", obj.Transparency) end
+    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Light") or obj:IsA("PostEffect") then
+        obj:SetAttribute("OrigEnabled", obj.Enabled)
+    end
+    if obj:IsA("Sky") then
+        obj:SetAttribute("OrigSkyParent", obj.Parent.Name) -- Lưu lại để biết nó từng ở đâu
     end
 end
 
--- Hàm xử lý từng vật thể (Quét sâu vào MeshPart)
+-- Hàm KHÔI PHỤC trạng thái gốc
+local function RestoreObject(obj)
+    if not obj:GetAttribute("Saved") then return end
+
+    if obj:IsA("BasePart") then
+        if obj:GetAttribute("OrigColor") then obj.Color = obj:GetAttribute("OrigColor") end
+        if obj:GetAttribute("OrigMaterial") then obj.Material = Enum.Material[obj:GetAttribute("OrigMaterial")] end
+        if obj:GetAttribute("OrigTransparency") then obj.Transparency = obj:GetAttribute("OrigTransparency") end
+        if obj:GetAttribute("OrigShadow") ~= nil then obj.CastShadow = obj:GetAttribute("OrigShadow") end
+    end
+    if obj:IsA("MeshPart") and obj:GetAttribute("OrigTex") then obj.TextureID = obj:GetAttribute("OrigTex") end
+    if obj:IsA("SpecialMesh") and obj:GetAttribute("OrigTexId") then obj.TextureId = obj:GetAttribute("OrigTexId") end
+    if (obj:IsA("Decal") or obj:IsA("Texture")) and obj:GetAttribute("OrigTrans") then obj.Transparency = obj:GetAttribute("OrigTrans") end
+    if (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Light") or obj:IsA("PostEffect")) and obj:GetAttribute("OrigEnabled") ~= nil then
+        obj.Enabled = obj:GetAttribute("OrigEnabled")
+    end
+    if obj:IsA("Sky") then obj.Parent = lighting end -- Trả lại bầu trời
+end
+
+-- =======================================================
+-- LÕI XỬ LÝ FIX LAG
+-- =======================================================
+
 local function ProcessObject(obj, level)
-    -- LEVEL 1: Tắt bóng và ánh sáng phát ra
+    SaveOriginalState(obj) -- LƯU LẠI TRƯỚC KHI XÓA/SỬA
+
+    -- LEVEL 1: Xóa bóng và ánh sáng phụ
     if level >= 1 then
-        if obj:IsA("BasePart") then
-            obj.CastShadow = false
-        elseif obj:IsA("PointLight") or obj:IsA("SurfaceLight") or obj:IsA("SpotLight") then
+        if obj:IsA("BasePart") then obj.CastShadow = false
+        elseif obj:IsA("Light") then obj.Enabled = false end
+    end
+
+    -- LEVEL 2: Tắt hiệu ứng chiêu thức (Particles)
+    if level >= 2 then
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
             obj.Enabled = false
         end
     end
 
-    -- LEVEL 2: Xóa sổ 100% hiệu ứng chiêu thức (Particles, Trails)
-    if level >= 2 then
-        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
-            obj.Enabled = false -- Chỉ tắt đi, không Destroy để tránh lỗi script game
-            obj.Transparency = NumberSequence.new(1) -- Ép tàng hình
-        end
-    end
-
-    -- LEVEL 3: Tàn phá đồ họa (Xóa Texture, làm trong suốt)
+    -- LEVEL 3: TÀN PHÁ ĐỒ HỌA (XÓA THÊM)
     if level >= 3 then
         if obj:IsA("BasePart") then
             obj.Material = Enum.Material.SmoothPlastic
-            obj.Color = Color3.fromRGB(150, 150, 150)
-            obj.Transparency = 0.5 -- Nhìn xuyên thấu
+            obj.Color = Color3.fromRGB(120, 120, 120) -- Màu xám xi măng
+            obj.Transparency = 0.5 -- Làm mờ
         end
+        if obj:IsA("MeshPart") then obj.TextureID = "" end
+        if obj:IsA("SpecialMesh") then obj.TextureId = "" end
+        if obj:IsA("Decal") or obj:IsA("Texture") then obj.Transparency = 1 end
         
-        -- ĐẶC BIỆT CHO BLOX FRUITS: Xóa kết cấu Mesh
-        if obj:IsA("MeshPart") then
-            obj.TextureID = "" -- Xóa vân bề mặt
-        elseif obj:IsA("SpecialMesh") then
-            obj.TextureId = "" -- Xóa ảnh của các khối custom
-        elseif obj:IsA("Decal") or obj:IsA("Texture") then
-            obj.Transparency = 1 -- Làm mờ hoàn toàn ảnh dán
+        -- [MỚI] Xóa sạch phụ kiện (Accessories/Quần áo 3D) của NPC và Người chơi khác
+        if obj:IsA("Accessory") or obj:IsA("ShirtGraphic") or obj:IsA("Clothing") then
+            obj:Destroy() -- Cái này xóa hẳn cho nhẹ máy, ko cần khôi phục
         end
     end
 end
 
--- Quét toàn bộ Game (Tránh lag máy khi quét bằng cách chia nhỏ bằng task.wait)
+-- Tối ưu Môi trường & Bầu trời
+local function OptimizeEnvironment(level)
+    if level >= 1 then
+        lighting.GlobalShadows = false
+    end
+    if level >= 3 then
+        -- [MỚI] Xóa bầu trời, xóa sương mù, xóa hiệu ứng
+        lighting.FogEnd = 9e9
+        for _, v in pairs(lighting:GetChildren()) do
+            SaveOriginalState(v)
+            if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
+                v.Enabled = false
+            elseif v:IsA("Sky") then
+                v.Parent = game.ReplicatedStorage -- Cất bầu trời đi thay vì xóa
+            end
+        end
+        -- [MỚI] Xóa cỏ 3D
+        if terrain then terrain.Decoration = false end
+    end
+end
+
+-- =======================================================
+-- HÀM QUÉT VÀ THỰC THI (CÓ CHỐNG ĐƠ MÁY)
+-- =======================================================
 local function RunOptimizer(level)
     CurrentLevel = level
-    OptimizeLightingAndTerrain()
+    OptimizeEnvironment(level)
     
-    -- Quét cả Workspace (Đảo, NPC) và ReplicatedStorage (Chiêu thức đang cất giấu)
     local allObjects = workspace:GetDescendants()
+    local total = #allObjects
+    
     for i, obj in pairs(allObjects) do
         ProcessObject(obj, level)
-        -- Chống crash khi quét quá nhiều vật thể cùng lúc
-        if i % 1000 == 0 then task.wait() end 
+        -- Cứ quét 1500 vật thể thì nghỉ 1 nhịp để máy không bị đơ/văng game
+        if i % 1500 == 0 then task.wait() end 
     end
 end
 
--- Tự động áp dụng lên các chiêu thức VỪA ĐƯỢC TUNG RA
+local function RunRestore()
+    CurrentLevel = 0
+    lighting.GlobalShadows = true
+    if terrain then terrain.Decoration = true end -- Bật lại cỏ
+    
+    local allObjects = workspace:GetDescendants()
+    for i, obj in pairs(allObjects) do
+        RestoreObject(obj)
+        if i % 1500 == 0 then task.wait() end 
+    end
+    
+    -- Khôi phục đồ họa trong Lighting
+    for _, v in pairs(lighting:GetChildren()) do RestoreObject(v) end
+    for _, v in pairs(game.ReplicatedStorage:GetChildren()) do 
+        if v:IsA("Sky") then v.Parent = lighting end 
+    end
+end
+
+-- Tự động áp dụng cho các vật/chiêu thức mới sinh ra
 workspace.DescendantAdded:Connect(function(obj)
     if CurrentLevel > 0 then
+        -- Chờ 1 chút để vật thể load xong rồi mới fix
+        task.wait(0.1) 
         ProcessObject(obj, CurrentLevel)
     end
 end)
 
--- Gắn sự kiện cho các Nút
+-- =======================================================
+-- GẮN NÚT
+-- =======================================================
 BtnLight.MouseButton1Click:Connect(function()
-    BtnLight.Text = "Đang áp dụng..."
+    BtnLight.Text = "Đang quét map..."
     RunOptimizer(1)
     BtnLight.Text = "Đã Fix Nhẹ!"
+    BtnStrong.Text = "Fix Lag Mạnh"; BtnExtreme.Text = "Fix Lag Siêu Mạnh"; BtnRestore.Text = "Tắt Fix / Khôi Phục"
 end)
 
 BtnStrong.MouseButton1Click:Connect(function()
-    BtnStrong.Text = "Đang áp dụng..."
+    BtnStrong.Text = "Đang quét map..."
     RunOptimizer(2)
     BtnStrong.Text = "Đã Fix Mạnh!"
+    BtnLight.Text = "Fix Lag Nhẹ"; BtnExtreme.Text = "Fix Lag Siêu Mạnh"; BtnRestore.Text = "Tắt Fix / Khôi Phục"
 end)
 
 BtnExtreme.MouseButton1Click:Connect(function()
-    BtnExtreme.Text = "Đang áp dụng..."
+    BtnExtreme.Text = "Đang tàn phá đồ họa..."
     RunOptimizer(3)
     BtnExtreme.Text = "Đã Fix Siêu Mạnh!"
+    BtnLight.Text = "Fix Lag Nhẹ"; BtnStrong.Text = "Fix Lag Mạnh"; BtnRestore.Text = "Tắt Fix / Khôi Phục"
+end)
+
+BtnRestore.MouseButton1Click:Connect(function()
+    BtnRestore.Text = "Đang khôi phục..."
+    RunRestore()
+    BtnRestore.Text = "Đã Khôi Phục!"
+    BtnLight.Text = "Fix Lag Nhẹ"; BtnStrong.Text = "Fix Lag Mạnh"; BtnExtreme.Text = "Fix Lag Siêu Mạnh"
 end)
