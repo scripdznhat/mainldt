@@ -1,9 +1,10 @@
 -- =======================================================
--- LDT HUB - FIX LAG V1 (BLOX FRUITS EDITION) - BẢN NÂNG CẤP
+-- LDT HUB - FIX LAG V1 (BLOX FRUITS EDITION) - TỐC ĐỘ BÀN THỜ
 -- =======================================================
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService") -- Thêm RunService để tối ưu tốc độ
 local workspace = game:GetService("Workspace")
 local lighting = game:GetService("Lighting")
 local replicatedStorage = game:GetService("ReplicatedStorage")
@@ -132,124 +133,117 @@ ToggleBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =======================================================
--- LÕI XỬ LÝ FIX LAG (CHUYÊN TRỊ BLOX FRUITS - ĐÃ NÂNG CẤP)
+-- LÕI XỬ LÝ FIX LAG (CHUYÊN TRỊ BLOX FRUITS - SIÊU NHANH)
 -- =======================================================
 local CurrentLevel = 0
+local isProcessing = false -- Khóa chống spam nút
 
--- Tối ưu hóa hệ thống ánh sáng và nước biển
 local function OptimizeLightingAndTerrain()
     lighting.GlobalShadows = false
     lighting.FogEnd = 9e9
     lighting.Brightness = 1
     
-    -- Xóa sương mù, mờ viền, chói sáng của Blox Fruits
     for _, v in pairs(lighting:GetChildren()) do
         if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("Sky") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
             v:Destroy()
         end
     end
 
-    -- Giảm đồ họa nước biển
     if terrain then
-        terrain.WaterWaveSize = 0
-        terrain.WaterWaveSpeed = 0
-        terrain.WaterReflectance = 0
-        terrain.WaterTransparency = 1
-        
-        -- NÂNG CẤP: Tắt hiển thị cỏ 3D nếu dùng Fix Mạnh/Siêu Mạnh
-        if CurrentLevel >= 2 then
-            terrain.Decoration = false 
-        end
+        terrain.WaterWaveSize = 0; terrain.WaterWaveSpeed = 0; terrain.WaterReflectance = 0; terrain.WaterTransparency = 1
+        if CurrentLevel >= 2 then terrain.Decoration = false end
     end
 end
 
--- Hàm xử lý từng vật thể (Quét sâu vào MeshPart)
 local function ProcessObject(obj, level)
-    -- LEVEL 1: Tắt bóng và ánh sáng phát ra
     if level >= 1 then
-        if obj:IsA("BasePart") then
-            obj.CastShadow = false
-        elseif obj:IsA("PointLight") or obj:IsA("SurfaceLight") or obj:IsA("SpotLight") then
-            obj.Enabled = false
-        end
+        if obj:IsA("BasePart") then obj.CastShadow = false
+        elseif obj:IsA("PointLight") or obj:IsA("SurfaceLight") or obj:IsA("SpotLight") then obj.Enabled = false end
     end
 
-    -- LEVEL 2: Xóa sổ 100% hiệu ứng chiêu thức (Particles, Trails)
     if level >= 2 then
         if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
-            obj.Enabled = false -- Chỉ tắt đi, không Destroy để tránh lỗi script game
-            obj.Transparency = NumberSequence.new(1) -- Ép tàng hình
+            obj.Enabled = false
+            obj.Transparency = NumberSequence.new(1)
         end
     end
 
-    -- LEVEL 3: Tàn phá đồ họa (Xóa Texture, làm trong suốt, xóa phụ kiện)
     if level >= 3 then
         if obj:IsA("BasePart") then
             obj.Material = Enum.Material.SmoothPlastic
             obj.Color = Color3.fromRGB(150, 150, 150)
-            obj.Transparency = 0.5 -- Nhìn xuyên thấu
-            obj.Reflectance = 0 -- NÂNG CẤP: Không phản chiếu ánh sáng
+            obj.Transparency = 0.5
+            obj.Reflectance = 0
         end
-        
-        -- ĐẶC BIỆT CHO BLOX FRUITS: Xóa kết cấu Mesh
-        if obj:IsA("MeshPart") then
-            obj.TextureID = "" -- Xóa vân bề mặt
-        elseif obj:IsA("SpecialMesh") then
-            obj.TextureId = "" -- Xóa ảnh của các khối custom
-        elseif obj:IsA("Decal") or obj:IsA("Texture") then
-            obj.Transparency = 1 -- Làm mờ hoàn toàn ảnh dán
-            
-        -- NÂNG CẤP: Xóa sạch phụ kiện, áo quần 3D của quái và người chơi khác
+        if obj:IsA("MeshPart") then obj.TextureID = ""
+        elseif obj:IsA("SpecialMesh") then obj.TextureId = ""
+        elseif obj:IsA("Decal") or obj:IsA("Texture") then obj.Transparency = 1
         elseif obj:IsA("Accessory") or obj:IsA("ShirtGraphic") or obj:IsA("Shirt") or obj:IsA("Pants") then
             obj:Destroy() 
         end
     end
 end
 
--- Quét toàn bộ Game (Tránh lag máy khi quét bằng cách chia nhỏ bằng task.wait)
-local function RunOptimizer(level)
+-- TỐI ƯU HÓA HÀM CHẠY: Dùng task.spawn để không làm đơ máy
+local function RunOptimizer(level, btn, doneText)
+    if isProcessing then return end -- Đang chạy thì không cho bấm chồng lên
+    isProcessing = true
     CurrentLevel = level
     OptimizeLightingAndTerrain()
     
-    -- 1. Quét Workspace (Đảo, NPC)
-    local workspaceObjects = workspace:GetDescendants()
-    for i, obj in pairs(workspaceObjects) do
-        ProcessObject(obj, level)
-        if i % 1000 == 0 then task.wait() end 
-    end
+    btn.Text = "Đang xử lý (1-2s)..."
     
-    -- 2. NÂNG CẤP: Thực sự quét ReplicatedStorage (Xóa triệt để chiêu thức đang giấu)
-    if level >= 2 then
-        local repObjects = replicatedStorage:GetDescendants()
-        for i, obj in pairs(repObjects) do
-            ProcessObject(obj, level)
-            if i % 1000 == 0 then task.wait() end 
+    -- Mở một luồng chạy ngầm (Không làm đơ màn hình người chơi)
+    task.spawn(function()
+        local count = 0
+        local function ScanFolder(folder)
+            local objects = folder:GetDescendants()
+            for i = 1, #objects do
+                ProcessObject(objects[i], level)
+                count = count + 1
+                -- BÍ QUYẾT TĂNG TỐC: Cứ 5000 vật thể mới nghỉ một khung hình cực ngắn thay vì 1000
+                if count >= 5000 then
+                    count = 0
+                    RunService.Heartbeat:Wait()
+                end
+            end
         end
-    end
+
+        -- Quét Workspace
+        ScanFolder(workspace)
+        
+        -- Quét ReplicatedStorage
+        if level >= 2 then
+            ScanFolder(replicatedStorage)
+        end
+        
+        -- Khôi phục trạng thái nút
+        btn.Text = doneText
+        isProcessing = false
+    end)
 end
 
--- Tự động áp dụng lên các chiêu thức VỪA ĐƯỢC TUNG RA
 workspace.DescendantAdded:Connect(function(obj)
-    if CurrentLevel > 0 then
-        ProcessObject(obj, CurrentLevel)
-    end
+    if CurrentLevel > 0 then ProcessObject(obj, CurrentLevel) end
 end)
 
--- Gắn sự kiện cho các Nút
+-- =======================================================
+-- GẮN NÚT
+-- =======================================================
 BtnLight.MouseButton1Click:Connect(function()
-    BtnLight.Text = "Đang áp dụng..."
-    RunOptimizer(1)
-    BtnLight.Text = "Đã Fix Nhẹ!"
+    RunOptimizer(1, BtnLight, "Đã Fix Nhẹ!")
+    BtnStrong.Text = "Fix Lag Mạnh"
+    BtnExtreme.Text = "Fix Lag Siêu Mạnh"
 end)
 
 BtnStrong.MouseButton1Click:Connect(function()
-    BtnStrong.Text = "Đang áp dụng..."
-    RunOptimizer(2)
-    BtnStrong.Text = "Đã Fix Mạnh!"
+    RunOptimizer(2, BtnStrong, "Đã Fix Mạnh!")
+    BtnLight.Text = "Fix Lag Nhẹ"
+    BtnExtreme.Text = "Fix Lag Siêu Mạnh"
 end)
 
 BtnExtreme.MouseButton1Click:Connect(function()
-    BtnExtreme.Text = "Đang áp dụng..."
-    RunOptimizer(3)
-    BtnExtreme.Text = "Đã Fix Siêu Mạnh!"
+    RunOptimizer(3, BtnExtreme, "Đã Fix Siêu Mạnh!")
+    BtnLight.Text = "Fix Lag Nhẹ"
+    BtnStrong.Text = "Fix Lag Mạnh"
 end)
